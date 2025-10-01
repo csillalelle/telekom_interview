@@ -1,0 +1,7 @@
+Metadata-Version: 2.4
+Name: shared_library
+Version: 1.0.0
+Summary: Example library
+Author-email: Nadia Alloppi <Your@email.com>
+License: UNLICENSED
+Project-URL: repository, https://github.com/interview/interview

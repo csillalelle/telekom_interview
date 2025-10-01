@@ -1,0 +1,16 @@
+pyproject.toml
+code_location_interview/__init__.py
+code_location_interview.egg-info/PKG-INFO
+code_location_interview.egg-info/SOURCES.txt
+code_location_interview.egg-info/dependency_links.txt
+code_location_interview.egg-info/requires.txt
+code_location_interview.egg-info/top_level.txt
+code_location_interview/assets/__init__.py
+code_location_interview/assets/dbt_assets.py
+code_location_interview/assets/magenta_interview/__init__.py
+code_location_interview/assets/magenta_interview/get_data.py
+code_location_interview/assets/magenta_interview/predict.py
+code_location_interview/assets/magenta_interview/train.py
+code_location_interview/resources/__init__.py
+code_location_interview/resources/duckdb_path.py
+code_location_interview/resources/sql_asset_keys.py

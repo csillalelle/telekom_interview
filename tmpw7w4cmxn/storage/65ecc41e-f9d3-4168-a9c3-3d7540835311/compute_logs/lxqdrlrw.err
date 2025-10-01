@@ -1,0 +1,33 @@
+[32m2025-10-01 17:32:36 +0000[0m - dagster - [34mDEBUG[0m - __ASSET_JOB - 65ecc41e-f9d3-4168-a9c3-3d7540835311 - 19101 - LOGS_CAPTURED - Started capturing logs in process (pid: 19101).
+[32m2025-10-01 17:32:36 +0000[0m - dagster - [34mDEBUG[0m - __ASSET_JOB - 65ecc41e-f9d3-4168-a9c3-3d7540835311 - 19101 - core_data - STEP_START - Started execution of step "core_data".
+[32m2025-10-01 17:32:36 +0000[0m - dagster - [34mINFO[0m - __ASSET_JOB - 65ecc41e-f9d3-4168-a9c3-3d7540835311 - core_data - Age
+INFO:dagster.builtin.code_location_interview.assets.magenta_interview.get_data:__ASSET_JOB - 65ecc41e-f9d3-4168-a9c3-3d7540835311 - core_data - Age
+[32m2025-10-01 17:32:36 +0000[0m - dagster - [34mINFO[0m - __ASSET_JOB - 65ecc41e-f9d3-4168-a9c3-3d7540835311 - core_data - contract_lifetime_days
+INFO:dagster.builtin.code_location_interview.assets.magenta_interview.get_data:__ASSET_JOB - 65ecc41e-f9d3-4168-a9c3-3d7540835311 - core_data - contract_lifetime_days
+[32m2025-10-01 17:32:36 +0000[0m - dagster - [34mINFO[0m - __ASSET_JOB - 65ecc41e-f9d3-4168-a9c3-3d7540835311 - core_data - remaining_binding_days
+INFO:dagster.builtin.code_location_interview.assets.magenta_interview.get_data:__ASSET_JOB - 65ecc41e-f9d3-4168-a9c3-3d7540835311 - core_data - remaining_binding_days
+[32m2025-10-01 17:32:37 +0000[0m - dagster - [34mINFO[0m - __ASSET_JOB - 65ecc41e-f9d3-4168-a9c3-3d7540835311 - core_data - has_special_offer
+INFO:dagster.builtin.code_location_interview.assets.magenta_interview.get_data:__ASSET_JOB - 65ecc41e-f9d3-4168-a9c3-3d7540835311 - core_data - has_special_offer
+[32m2025-10-01 17:32:37 +0000[0m - dagster - [34mINFO[0m - __ASSET_JOB - 65ecc41e-f9d3-4168-a9c3-3d7540835311 - core_data - available_gb
+INFO:dagster.builtin.code_location_interview.assets.magenta_interview.get_data:__ASSET_JOB - 65ecc41e-f9d3-4168-a9c3-3d7540835311 - core_data - available_gb
+[32m2025-10-01 17:32:37 +0000[0m - dagster - [34mINFO[0m - __ASSET_JOB - 65ecc41e-f9d3-4168-a9c3-3d7540835311 - core_data - gross_mrc
+INFO:dagster.builtin.code_location_interview.assets.magenta_interview.get_data:__ASSET_JOB - 65ecc41e-f9d3-4168-a9c3-3d7540835311 - core_data - gross_mrc
+[32m2025-10-01 17:32:37 +0000[0m - dagster - [34mINFO[0m - __ASSET_JOB - 65ecc41e-f9d3-4168-a9c3-3d7540835311 - core_data - smartphone_brand
+INFO:dagster.builtin.code_location_interview.assets.magenta_interview.get_data:__ASSET_JOB - 65ecc41e-f9d3-4168-a9c3-3d7540835311 - core_data - smartphone_brand
+[32m2025-10-01 17:32:37 +0000[0m - dagster - [34mINFO[0m - __ASSET_JOB - 65ecc41e-f9d3-4168-a9c3-3d7540835311 - core_data - 0.43225
+INFO:dagster.builtin.code_location_interview.assets.magenta_interview.get_data:__ASSET_JOB - 65ecc41e-f9d3-4168-a9c3-3d7540835311 - core_data - 0.43225
+[32m2025-10-01 17:32:37 +0000[0m - dagster - [34mINFO[0m - __ASSET_JOB - 65ecc41e-f9d3-4168-a9c3-3d7540835311 - core_data - Create df
+INFO:dagster.builtin.code_location_interview.assets.magenta_interview.get_data:__ASSET_JOB - 65ecc41e-f9d3-4168-a9c3-3d7540835311 - core_data - Create df
+[32m2025-10-01 17:32:37 +0000[0m - dagster - [34mDEBUG[0m - __ASSET_JOB - 65ecc41e-f9d3-4168-a9c3-3d7540835311 - 19101 - core_data - STEP_OUTPUT - Yielded output "rating_account_id" of type "Any". (Type check passed).
+[32m2025-10-01 17:32:37 +0000[0m - dagster - [34mDEBUG[0m - __ASSET_JOB - 65ecc41e-f9d3-4168-a9c3-3d7540835311 - core_data - Writing file at: /workspaces/telekom_interview/tmpw7w4cmxn/storage/rating_account_id using PickledObjectFilesystemIOManager...
+[32m2025-10-01 17:32:37 +0000[0m - dagster - [34mDEBUG[0m - __ASSET_JOB - 65ecc41e-f9d3-4168-a9c3-3d7540835311 - 19101 - core_data - ASSET_MATERIALIZATION - Materialized value rating_account_id.
+[32m2025-10-01 17:32:37 +0000[0m - dagster - [34mDEBUG[0m - __ASSET_JOB - 65ecc41e-f9d3-4168-a9c3-3d7540835311 - 19101 - core_data - HANDLED_OUTPUT - Handled output "rating_account_id" using IO manager "io_manager"
+[32m2025-10-01 17:32:37 +0000[0m - dagster - [34mDEBUG[0m - __ASSET_JOB - 65ecc41e-f9d3-4168-a9c3-3d7540835311 - 19101 - core_data - STEP_OUTPUT - Yielded output "unique_customer_ids" of type "Any". (Type check passed).
+[32m2025-10-01 17:32:37 +0000[0m - dagster - [34mDEBUG[0m - __ASSET_JOB - 65ecc41e-f9d3-4168-a9c3-3d7540835311 - core_data - Writing file at: /workspaces/telekom_interview/tmpw7w4cmxn/storage/unique_customer_ids using PickledObjectFilesystemIOManager...
+[32m2025-10-01 17:32:37 +0000[0m - dagster - [34mDEBUG[0m - __ASSET_JOB - 65ecc41e-f9d3-4168-a9c3-3d7540835311 - 19101 - core_data - ASSET_MATERIALIZATION - Materialized value unique_customer_ids.
+[32m2025-10-01 17:32:37 +0000[0m - dagster - [34mDEBUG[0m - __ASSET_JOB - 65ecc41e-f9d3-4168-a9c3-3d7540835311 - 19101 - core_data - HANDLED_OUTPUT - Handled output "unique_customer_ids" using IO manager "io_manager"
+[32m2025-10-01 17:32:37 +0000[0m - dagster - [34mDEBUG[0m - __ASSET_JOB - 65ecc41e-f9d3-4168-a9c3-3d7540835311 - 19101 - core_data - STEP_OUTPUT - Yielded output "core_data" of type "Any". (Type check passed).
+[32m2025-10-01 17:32:37 +0000[0m - dagster - [34mDEBUG[0m - __ASSET_JOB - 65ecc41e-f9d3-4168-a9c3-3d7540835311 - core_data - Writing file at: /workspaces/telekom_interview/tmpw7w4cmxn/storage/core_data using PickledObjectFilesystemIOManager...
+[32m2025-10-01 17:32:37 +0000[0m - dagster - [34mDEBUG[0m - __ASSET_JOB - 65ecc41e-f9d3-4168-a9c3-3d7540835311 - 19101 - core_data - ASSET_MATERIALIZATION - Materialized value core_data.
+[32m2025-10-01 17:32:37 +0000[0m - dagster - [34mDEBUG[0m - __ASSET_JOB - 65ecc41e-f9d3-4168-a9c3-3d7540835311 - 19101 - core_data - HANDLED_OUTPUT - Handled output "core_data" using IO manager "io_manager"
+[32m2025-10-01 17:32:37 +0000[0m - dagster - [34mDEBUG[0m - __ASSET_JOB - 65ecc41e-f9d3-4168-a9c3-3d7540835311 - 19101 - core_data - STEP_SUCCESS - Finished execution of step "core_data" in 1.51s.

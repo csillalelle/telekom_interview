@@ -1,0 +1,5 @@
+dagster<1.10,>=1.9.11
+
+[dev]
+dagster-webserver<1.10,>=1.9.11
+pytest
