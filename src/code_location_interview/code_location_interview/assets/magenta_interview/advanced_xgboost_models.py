@@ -361,18 +361,12 @@ def xgboost_model_random_search(X_train, y_train):
         logger.info(f"  CV Score: {row['mean_test_score']:.4f} (+/- {row['std_test_score']:.4f})")
         logger.info(f"  Gap: {row['mean_train_score'] - row['mean_test_score']:.4f}")
     
-    # Feature importance
-    feature_importance = pd.DataFrame({
-        'feature': X_train.columns,
-        'importance': best_model.feature_importances_
-    }).sort_values('importance', ascending=False)
-    
+
     return {
         'model': best_model,
         'best_params': random_search.best_params_,
         'best_score': random_search.best_score_,
         'cv_results': results_df,
-        'feature_importance': feature_importance
     }
 
 
