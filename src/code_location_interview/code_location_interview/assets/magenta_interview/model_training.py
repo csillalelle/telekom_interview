@@ -17,6 +17,9 @@ from sklearn.metrics import (
 import xgboost as xgb
 from dagster import AssetOut, Output, multi_asset, asset, get_dagster_logger
 
+log_fmt = "[%(asctime)s] %(message)s"
+log_datefmt = "%Y-%m-%d %H:%M:%S"
+logging.basicConfig(stream=sys.stdout, format=log_fmt, datefmt=log_datefmt, level=logging.INFO)
 logger = get_dagster_logger(__name__)
 group_name = "training"
 
@@ -138,49 +141,49 @@ def logistic_regression_model(X_train, y_train):
 @asset(group_name=group_name)
 def xgboost_model(X_train, y_train):
     """
-    Train an XGBoost model with regularization to prevent overfitting
+    Train an XGBoost model
     
-    CHANGES FROM ORIGINAL:
-    - Reduced max_depth: 5 → 3 (prevent overfitting)
-    - Added min_child_weight: 5 (require more samples per leaf)
-    - Added gamma: 0.1 (minimum loss reduction)
-    - Added L1 regularization (alpha = 1.0)
-    - Increased L2 regularization (lambda = 5.0)
-    - Reduced learning_rate: 0.1 → 0.05 (slower, more stable)
-    - Increased n_estimators: 100 → 200 (compensate for slower learning)
+    Why XGBoost?
+    - Handles non-linear relationships: Captures complex patterns in data
+    - Feature interactions: Automatically learns interactions between features
+    - Robust to outliers: Tree-based models are less sensitive to extreme values
+    - High performance: Often achieves better predictive accuracy than linear models
+    - Built-in feature importance: Provides multiple ways to rank features
     """
-    logger.info("Training XGBoost model with regularization...")
+    logger.info("Training XGBoost model...")
     
     # Calculate scale_pos_weight for class imbalance
+    # This parameter helps XGBoost handle imbalanced datasets
     scale_pos_weight = (y_train == 0).sum() / (y_train == 1).sum()
     logger.info(f"Scale pos weight (for class imbalance): {scale_pos_weight:.2f}")
     
-    # XGBoost parameters - UPDATED FOR BETTER GENERALIZATION
+    # XGBoost parameters
     xgb_params = {
-        # Tree structure - REDUCED COMPLEXITY
-        'max_depth': 3,                    # ← CHANGED from 5
-        'min_child_weight': 5,             # ← ADDED (was default 1)
-        'gamma': 0.1,                      # ← ADDED (minimum loss to split)
+        # Tree structure - shallow trees to prevent overfitting
+        'max_depth': 2,                    # Found optimal through hyperparameter tuning
+        'min_child_weight': 7,             # Higher value = more conservative (prevents overfitting)
+        'gamma': 0.05,                     # Minimum loss reduction for split
         
-        # Learning parameters - SLOWER, MORE STABLE
-        'learning_rate': 0.05,             # ← CHANGED from 0.1
-        'n_estimators': 200,               # ← CHANGED from 100
+        # Learning parameters
+        'learning_rate': 0.05,             # Lower learning rate for better generalization
+        'n_estimators': 300,               # Number of boosting rounds (optimized)
         
-        # Sampling - SAME AS BEFORE
-        'subsample': 0.8,
-        'colsample_bytree': 0.8,
+        # Sampling to reduce overfitting
+        'subsample': 0.7,                  # 70% of training instances per tree
+        'colsample_bytree': 0.9,          # 90% of features per tree
         
-        # Regularization - ADDED/INCREASED
-        'reg_alpha': 1.0,                  # ← ADDED (L1 regularization)
-        'reg_lambda': 5.0,                 # ← INCREASED (L2 regularization, was default 1.0)
+        # Regularization - prevent overfitting
+        'reg_alpha': 2.0,                  # L1 regularization (lasso)
+        'reg_lambda': 0.5,                 # L2 regularization (ridge)
         
-        # Other parameters - SAME AS BEFORE
-        'objective': 'binary:logistic',
-        'scale_pos_weight': scale_pos_weight,
+        # Other parameters
+        'objective': 'binary:logistic',   # Binary classification
+        'scale_pos_weight': scale_pos_weight,  # Handle class imbalance
         'random_state': 42,
-        'eval_metric': 'auc'
+        'eval_metric': 'auc',             # Evaluation metric
+        'early_stopping_rounds': 30       # Stop if no improvement for 30 rounds
     }
-    
+
     # Train the model
     xgb_model = xgb.XGBClassifier(**xgb_params)
     xgb_model.fit(X_train, y_train, verbose=False)
@@ -203,12 +206,6 @@ def xgboost_model(X_train, y_train):
     
     logger.info("\nTop 15 Most Important Features (by XGBoost importance):")
     logger.info(feature_importance.head(15).to_string())
-    
-    logger.info("\n💡 MODEL CHANGES FOR BETTER GENERALIZATION:")
-    logger.info("   - Shallower trees (max_depth=3)")
-    logger.info("   - Stronger regularization (L1=1.0, L2=5.0)")
-    logger.info("   - Slower learning rate (0.05)")
-    logger.info("   - More conservative splitting (min_child_weight=5, gamma=0.1)")
     
     return {
         'model': xgb_model,

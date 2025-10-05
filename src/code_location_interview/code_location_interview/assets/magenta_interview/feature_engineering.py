@@ -1,7 +1,12 @@
 import numpy as np
 import pandas as pd
 from dagster import AssetOut, Output, multi_asset, asset, get_dagster_logger
+import logging
+import sys
 
+log_fmt = "[%(asctime)s] %(message)s"
+log_datefmt = "%Y-%m-%d %H:%M:%S"
+logging.basicConfig(stream=sys.stdout, format=log_fmt, datefmt=log_datefmt, level=logging.INFO)
 logger = get_dagster_logger(__name__)
 group_name = "feature_engineering"
 
