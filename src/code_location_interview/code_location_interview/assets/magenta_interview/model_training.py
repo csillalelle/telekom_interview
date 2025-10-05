@@ -138,33 +138,47 @@ def logistic_regression_model(X_train, y_train):
 @asset(group_name=group_name)
 def xgboost_model(X_train, y_train):
     """
-    Train an XGBoost model
+    Train an XGBoost model with regularization to prevent overfitting
     
-    Why XGBoost?
-    - Handles non-linear relationships: Captures complex patterns in data
-    - Feature interactions: Automatically learns interactions between features
-    - Robust to outliers: Tree-based models are less sensitive to extreme values
-    - High performance: Often achieves better predictive accuracy than linear models
-    - Built-in feature importance: Provides multiple ways to rank features
+    CHANGES FROM ORIGINAL:
+    - Reduced max_depth: 5 → 3 (prevent overfitting)
+    - Added min_child_weight: 5 (require more samples per leaf)
+    - Added gamma: 0.1 (minimum loss reduction)
+    - Added L1 regularization (alpha = 1.0)
+    - Increased L2 regularization (lambda = 5.0)
+    - Reduced learning_rate: 0.1 → 0.05 (slower, more stable)
+    - Increased n_estimators: 100 → 200 (compensate for slower learning)
     """
-    logger.info("Training XGBoost model...")
+    logger.info("Training XGBoost model with regularization...")
     
     # Calculate scale_pos_weight for class imbalance
-    # This parameter helps XGBoost handle imbalanced datasets
     scale_pos_weight = (y_train == 0).sum() / (y_train == 1).sum()
     logger.info(f"Scale pos weight (for class imbalance): {scale_pos_weight:.2f}")
     
-    # XGBoost parameters
+    # XGBoost parameters - UPDATED FOR BETTER GENERALIZATION
     xgb_params = {
-        'max_depth': 5,                    # Maximum depth of trees (prevents overfitting)
-        'learning_rate': 0.1,              # Step size shrinkage (lower = more robust)
-        'n_estimators': 100,               # Number of boosting rounds
-        'objective': 'binary:logistic',   # Binary classification
-        'scale_pos_weight': scale_pos_weight,  # Handle class imbalance
-        'subsample': 0.8,                  # Subsample ratio of training instances
-        'colsample_bytree': 0.8,          # Subsample ratio of features
+        # Tree structure - REDUCED COMPLEXITY
+        'max_depth': 3,                    # ← CHANGED from 5
+        'min_child_weight': 5,             # ← ADDED (was default 1)
+        'gamma': 0.1,                      # ← ADDED (minimum loss to split)
+        
+        # Learning parameters - SLOWER, MORE STABLE
+        'learning_rate': 0.05,             # ← CHANGED from 0.1
+        'n_estimators': 200,               # ← CHANGED from 100
+        
+        # Sampling - SAME AS BEFORE
+        'subsample': 0.8,
+        'colsample_bytree': 0.8,
+        
+        # Regularization - ADDED/INCREASED
+        'reg_alpha': 1.0,                  # ← ADDED (L1 regularization)
+        'reg_lambda': 5.0,                 # ← INCREASED (L2 regularization, was default 1.0)
+        
+        # Other parameters - SAME AS BEFORE
+        'objective': 'binary:logistic',
+        'scale_pos_weight': scale_pos_weight,
         'random_state': 42,
-        'eval_metric': 'auc'              # Evaluation metric
+        'eval_metric': 'auc'
     }
     
     # Train the model
@@ -190,6 +204,12 @@ def xgboost_model(X_train, y_train):
     logger.info("\nTop 15 Most Important Features (by XGBoost importance):")
     logger.info(feature_importance.head(15).to_string())
     
+    logger.info("\n💡 MODEL CHANGES FOR BETTER GENERALIZATION:")
+    logger.info("   - Shallower trees (max_depth=3)")
+    logger.info("   - Stronger regularization (L1=1.0, L2=5.0)")
+    logger.info("   - Slower learning rate (0.05)")
+    logger.info("   - More conservative splitting (min_child_weight=5, gamma=0.1)")
+    
     return {
         'model': xgb_model,
         'cv_scores': cv_scores,
@@ -199,142 +219,276 @@ def xgboost_model(X_train, y_train):
 
 
 @asset(group_name=group_name)
-def evaluate_logistic_regression(logistic_regression_model, X_test, y_test):
+def evaluate_logistic_regression(logistic_regression_model, X_train, X_test, y_train, y_test):
     """
-    Evaluate Logistic Regression model on test set
+    Evaluate Logistic Regression model on both training and test sets
     """
     logger.info("Evaluating Logistic Regression model...")
     
     lr_model = logistic_regression_model['model']
     
-    # Predictions
+    # ============ TRAINING SET EVALUATION ============
+    logger.info("\n" + "="*60)
+    logger.info("TRAINING SET PERFORMANCE")
+    logger.info("="*60)
+    
+    y_train_pred = lr_model.predict(X_train)
+    y_train_pred_proba = lr_model.predict_proba(X_train)[:, 1]
+    
+    train_roc_auc = roc_auc_score(y_train, y_train_pred_proba)
+    train_avg_precision = average_precision_score(y_train, y_train_pred_proba)
+    train_f1 = f1_score(y_train, y_train_pred)
+    
+    logger.info(f"ROC-AUC Score: {train_roc_auc:.4f}")
+    logger.info(f"Average Precision Score: {train_avg_precision:.4f}")
+    logger.info(f"F1 Score: {train_f1:.4f}")
+    
+    logger.info("\nClassification Report:")
+    logger.info(classification_report(y_train, y_train_pred, target_names=['No Upsell', 'Upsell']))
+    
+    train_cm = confusion_matrix(y_train, y_train_pred)
+    logger.info("\nConfusion Matrix:")
+    logger.info(train_cm)
+    
+    # ============ TEST SET EVALUATION ============
+    logger.info("\n" + "="*60)
+    logger.info("TEST SET PERFORMANCE")
+    logger.info("="*60)
+    
     y_pred = lr_model.predict(X_test)
     y_pred_proba = lr_model.predict_proba(X_test)[:, 1]
     
-    # Calculate metrics
-    roc_auc = roc_auc_score(y_test, y_pred_proba)
-    avg_precision = average_precision_score(y_test, y_pred_proba)
-    f1 = f1_score(y_test, y_pred)
+    test_roc_auc = roc_auc_score(y_test, y_pred_proba)
+    test_avg_precision = average_precision_score(y_test, y_pred_proba)
+    test_f1 = f1_score(y_test, y_pred)
     
-    logger.info("\n" + "="*60)
-    logger.info("LOGISTIC REGRESSION - TEST SET PERFORMANCE")
-    logger.info("="*60)
-    logger.info(f"ROC-AUC Score: {roc_auc:.4f}")
-    logger.info(f"Average Precision Score: {avg_precision:.4f}")
-    logger.info(f"F1 Score: {f1:.4f}")
+    logger.info(f"ROC-AUC Score: {test_roc_auc:.4f}")
+    logger.info(f"Average Precision Score: {test_avg_precision:.4f}")
+    logger.info(f"F1 Score: {test_f1:.4f}")
     
     logger.info("\nClassification Report:")
     logger.info(classification_report(y_test, y_pred, target_names=['No Upsell', 'Upsell']))
     
+    test_cm = confusion_matrix(y_test, y_pred)
     logger.info("\nConfusion Matrix:")
-    cm = confusion_matrix(y_test, y_pred)
-    logger.info(cm)
-    logger.info(f"True Negatives: {cm[0,0]}, False Positives: {cm[0,1]}")
-    logger.info(f"False Negatives: {cm[1,0]}, True Positives: {cm[1,1]}")
+    logger.info(test_cm)
+    logger.info(f"True Negatives: {test_cm[0,0]}, False Positives: {test_cm[0,1]}")
+    logger.info(f"False Negatives: {test_cm[1,0]}, True Positives: {test_cm[1,1]}")
+    
+    # ============ OVERFITTING CHECK ============
+    logger.info("\n" + "="*60)
+    logger.info("OVERFITTING ANALYSIS")
+    logger.info("="*60)
+    
+    auc_gap = train_roc_auc - test_roc_auc
+    f1_gap = train_f1 - test_f1
+    
+    logger.info(f"Train ROC-AUC: {train_roc_auc:.4f}")
+    logger.info(f"Test ROC-AUC:  {test_roc_auc:.4f}")
+    logger.info(f"AUC Gap:       {auc_gap:.4f}")
+    
+    if auc_gap > 0.05:
+        logger.warning("⚠️  Potential overfitting: Train AUC significantly higher than test AUC")
+    else:
+        logger.info("✅ Model generalizes well: Minimal train-test gap")
     
     # Business metrics
-    precision = cm[1,1] / (cm[1,1] + cm[0,1]) if (cm[1,1] + cm[0,1]) > 0 else 0
-    recall = cm[1,1] / (cm[1,1] + cm[1,0]) if (cm[1,1] + cm[1,0]) > 0 else 0
+    precision = test_cm[1,1] / (test_cm[1,1] + test_cm[0,1]) if (test_cm[1,1] + test_cm[0,1]) > 0 else 0
+    recall = test_cm[1,1] / (test_cm[1,1] + test_cm[1,0]) if (test_cm[1,1] + test_cm[1,0]) > 0 else 0
     
-    logger.info("\nBusiness Interpretation:")
+    logger.info("\n" + "="*60)
+    logger.info("BUSINESS INTERPRETATION (TEST SET)")
+    logger.info("="*60)
     logger.info(f"Precision: {precision:.2%} - Of customers we target, {precision:.2%} will actually upsell")
     logger.info(f"Recall: {recall:.2%} - We capture {recall:.2%} of all potential upsell customers")
     
     return {
-        'roc_auc': roc_auc,
-        'avg_precision': avg_precision,
-        'f1_score': f1,
+        'train_roc_auc': train_roc_auc,
+        'train_avg_precision': train_avg_precision,
+        'train_f1_score': train_f1,
+        'roc_auc': test_roc_auc,
+        'avg_precision': test_avg_precision,
+        'f1_score': test_f1,
         'predictions': y_pred,
         'probabilities': y_pred_proba,
-        'confusion_matrix': cm
+        'confusion_matrix': test_cm,
+        'auc_gap': auc_gap
     }
 
 
 @asset(group_name=group_name)
-def evaluate_xgboost(xgboost_model, X_test, y_test):
+def evaluate_xgboost(xgboost_model, X_train, X_test, y_train, y_test):
     """
-    Evaluate XGBoost model on test set
+    Evaluate XGBoost model on both training and test sets
     """
     logger.info("Evaluating XGBoost model...")
     
     xgb_model = xgboost_model['model']
     
-    # Predictions
+    # ============ TRAINING SET EVALUATION ============
+    logger.info("\n" + "="*60)
+    logger.info("TRAINING SET PERFORMANCE")
+    logger.info("="*60)
+    
+    y_train_pred = xgb_model.predict(X_train)
+    y_train_pred_proba = xgb_model.predict_proba(X_train)[:, 1]
+    
+    train_roc_auc = roc_auc_score(y_train, y_train_pred_proba)
+    train_avg_precision = average_precision_score(y_train, y_train_pred_proba)
+    train_f1 = f1_score(y_train, y_train_pred)
+    
+    logger.info(f"ROC-AUC Score: {train_roc_auc:.4f}")
+    logger.info(f"Average Precision Score: {train_avg_precision:.4f}")
+    logger.info(f"F1 Score: {train_f1:.4f}")
+    
+    logger.info("\nClassification Report:")
+    logger.info(classification_report(y_train, y_train_pred, target_names=['No Upsell', 'Upsell']))
+    
+    train_cm = confusion_matrix(y_train, y_train_pred)
+    logger.info("\nConfusion Matrix:")
+    logger.info(train_cm)
+    
+    # ============ TEST SET EVALUATION ============
+    logger.info("\n" + "="*60)
+    logger.info("TEST SET PERFORMANCE")
+    logger.info("="*60)
+    
     y_pred = xgb_model.predict(X_test)
     y_pred_proba = xgb_model.predict_proba(X_test)[:, 1]
     
-    # Calculate metrics
-    roc_auc = roc_auc_score(y_test, y_pred_proba)
-    avg_precision = average_precision_score(y_test, y_pred_proba)
-    f1 = f1_score(y_test, y_pred)
+    test_roc_auc = roc_auc_score(y_test, y_pred_proba)
+    test_avg_precision = average_precision_score(y_test, y_pred_proba)
+    test_f1 = f1_score(y_test, y_pred)
     
-    logger.info("\n" + "="*60)
-    logger.info("XGBOOST - TEST SET PERFORMANCE")
-    logger.info("="*60)
-    logger.info(f"ROC-AUC Score: {roc_auc:.4f}")
-    logger.info(f"Average Precision Score: {avg_precision:.4f}")
-    logger.info(f"F1 Score: {f1:.4f}")
+    logger.info(f"ROC-AUC Score: {test_roc_auc:.4f}")
+    logger.info(f"Average Precision Score: {test_avg_precision:.4f}")
+    logger.info(f"F1 Score: {test_f1:.4f}")
     
     logger.info("\nClassification Report:")
     logger.info(classification_report(y_test, y_pred, target_names=['No Upsell', 'Upsell']))
     
+    test_cm = confusion_matrix(y_test, y_pred)
     logger.info("\nConfusion Matrix:")
-    cm = confusion_matrix(y_test, y_pred)
-    logger.info(cm)
-    logger.info(f"True Negatives: {cm[0,0]}, False Positives: {cm[0,1]}")
-    logger.info(f"False Negatives: {cm[1,0]}, True Positives: {cm[1,1]}")
+    logger.info(test_cm)
+    logger.info(f"True Negatives: {test_cm[0,0]}, False Positives: {test_cm[0,1]}")
+    logger.info(f"False Negatives: {test_cm[1,0]}, True Positives: {test_cm[1,1]}")
+    
+    # ============ OVERFITTING CHECK ============
+    logger.info("\n" + "="*60)
+    logger.info("OVERFITTING ANALYSIS")
+    logger.info("="*60)
+    
+    auc_gap = train_roc_auc - test_roc_auc
+    f1_gap = train_f1 - test_f1
+    
+    logger.info(f"Train ROC-AUC: {train_roc_auc:.4f}")
+    logger.info(f"Test ROC-AUC:  {test_roc_auc:.4f}")
+    logger.info(f"AUC Gap:       {auc_gap:.4f}")
+    
+    if auc_gap > 0.05:
+        logger.warning("⚠️  Potential overfitting: Train AUC significantly higher than test AUC")
+    else:
+        logger.info("✅ Model generalizes well: Minimal train-test gap")
     
     # Business metrics
-    precision = cm[1,1] / (cm[1,1] + cm[0,1]) if (cm[1,1] + cm[0,1]) > 0 else 0
-    recall = cm[1,1] / (cm[1,1] + cm[1,0]) if (cm[1,1] + cm[1,0]) > 0 else 0
+    precision = test_cm[1,1] / (test_cm[1,1] + test_cm[0,1]) if (test_cm[1,1] + test_cm[0,1]) > 0 else 0
+    recall = test_cm[1,1] / (test_cm[1,1] + test_cm[1,0]) if (test_cm[1,1] + test_cm[1,0]) > 0 else 0
     
-    logger.info("\nBusiness Interpretation:")
+    logger.info("\n" + "="*60)
+    logger.info("BUSINESS INTERPRETATION (TEST SET)")
+    logger.info("="*60)
     logger.info(f"Precision: {precision:.2%} - Of customers we target, {precision:.2%} will actually upsell")
     logger.info(f"Recall: {recall:.2%} - We capture {recall:.2%} of all potential upsell customers")
     
     return {
-        'roc_auc': roc_auc,
-        'avg_precision': avg_precision,
-        'f1_score': f1,
+        'train_roc_auc': train_roc_auc,
+        'train_avg_precision': train_avg_precision,
+        'train_f1_score': train_f1,
+        'roc_auc': test_roc_auc,
+        'avg_precision': test_avg_precision,
+        'f1_score': test_f1,
         'predictions': y_pred,
         'probabilities': y_pred_proba,
-        'confusion_matrix': cm
+        'confusion_matrix': test_cm,
+        'auc_gap': auc_gap
     }
 
 
 @asset(group_name=group_name)
 def model_comparison(evaluate_logistic_regression, evaluate_xgboost):
     """
-    Compare performance of both models
+    Compare performance of both models on training and test sets
     """
     logger.info("\n" + "="*60)
-    logger.info("MODEL COMPARISON")
+    logger.info("MODEL COMPARISON - TRAINING VS TEST")
     logger.info("="*60)
     
+    # Create comprehensive comparison table
     comparison = pd.DataFrame({
-        'Logistic Regression': {
+        'LR_Train': {
+            'ROC-AUC': evaluate_logistic_regression['train_roc_auc'],
+            'Avg Precision': evaluate_logistic_regression['train_avg_precision'],
+            'F1 Score': evaluate_logistic_regression['train_f1_score']
+        },
+        'LR_Test': {
             'ROC-AUC': evaluate_logistic_regression['roc_auc'],
             'Avg Precision': evaluate_logistic_regression['avg_precision'],
             'F1 Score': evaluate_logistic_regression['f1_score']
         },
-        'XGBoost': {
+        'XGB_Train': {
+            'ROC-AUC': evaluate_xgboost['train_roc_auc'],
+            'Avg Precision': evaluate_xgboost['train_avg_precision'],
+            'F1 Score': evaluate_xgboost['train_f1_score']
+        },
+        'XGB_Test': {
             'ROC-AUC': evaluate_xgboost['roc_auc'],
             'Avg Precision': evaluate_xgboost['avg_precision'],
             'F1 Score': evaluate_xgboost['f1_score']
         }
     }).T
     
+    logger.info("\n📊 COMPLETE PERFORMANCE COMPARISON:")
     logger.info("\n" + comparison.to_string())
+    
+    # Performance gaps
+    logger.info("\n" + "="*60)
+    logger.info("TRAIN-TEST PERFORMANCE GAPS")
+    logger.info("="*60)
+    logger.info(f"Logistic Regression AUC Gap: {evaluate_logistic_regression['auc_gap']:.4f}")
+    logger.info(f"XGBoost AUC Gap:            {evaluate_xgboost['auc_gap']:.4f}")
+    
+    # Test set comparison
+    logger.info("\n" + "="*60)
+    logger.info("TEST SET MODEL COMPARISON")
+    logger.info("="*60)
     
     # Determine winner
     if evaluate_xgboost['roc_auc'] > evaluate_logistic_regression['roc_auc']:
-        logger.info("\nXGBoost achieves higher ROC-AUC score")
+        winner = "XGBoost"
+        diff = evaluate_xgboost['roc_auc'] - evaluate_logistic_regression['roc_auc']
+        logger.info(f"🏆 XGBoost achieves higher ROC-AUC score (+{diff:.4f})")
     else:
-        logger.info("\nLogistic Regression achieves higher ROC-AUC score")
+        winner = "Logistic Regression"
+        diff = evaluate_logistic_regression['roc_auc'] - evaluate_xgboost['roc_auc']
+        logger.info(f"🏆 Logistic Regression achieves higher ROC-AUC score (+{diff:.4f})")
     
-    logger.info("\nRecommendation:")
-    logger.info("- Use XGBoost for maximum predictive performance")
-    logger.info("- Use Logistic Regression for interpretability and stakeholder communication")
-    logger.info("- Consider ensemble or stacking both models for production")
+    logger.info("\n" + "="*60)
+    logger.info("RECOMMENDATIONS")
+    logger.info("="*60)
+    logger.info("✅ For MAXIMUM PREDICTIVE PERFORMANCE:")
+    logger.info(f"   → Use {winner} (higher test set ROC-AUC)")
+    logger.info("\n✅ For INTERPRETABILITY & STAKEHOLDER COMMUNICATION:")
+    logger.info("   → Use Logistic Regression (clear feature coefficients)")
+    logger.info("\n✅ For PRODUCTION DEPLOYMENT:")
+    logger.info("   → Consider ensemble of both models or stacking")
+    logger.info("\n✅ For OVERFITTING CONCERNS:")
+    if evaluate_logistic_regression['auc_gap'] < evaluate_xgboost['auc_gap']:
+        logger.info("   → Logistic Regression shows better generalization")
+    else:
+        logger.info("   → XGBoost shows better generalization")
     
-    return comparison
+    return {
+        'comparison_table': comparison,
+        'best_model': winner,
+        'test_auc_difference': abs(diff)
+    }
