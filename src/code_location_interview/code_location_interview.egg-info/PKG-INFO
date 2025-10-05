@@ -1,0 +1,11 @@
+Metadata-Version: 2.4
+Name: code_location_interview
+Version: 1.0.0
+Summary: A sample code location with some python and dbt assets
+Author-email: Nadia Alloppi <Your@email.com>
+License: UNLICENSED
+Project-URL: repository, https://github.com/myorg/interview
+Requires-Dist: dagster<1.10,>=1.9.11
+Provides-Extra: dev
+Requires-Dist: dagster-webserver<1.10,>=1.9.11; extra == "dev"
+Requires-Dist: pytest; extra == "dev"
