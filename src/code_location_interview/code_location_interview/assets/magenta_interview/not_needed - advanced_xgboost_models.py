@@ -215,11 +215,11 @@
 #     logger.info("GRID SEARCH RESULTS")
 #     logger.info("="*60)
     
-#     logger.info("\n🏆 BEST PARAMETERS:")
+#     logger.info("\nBEST PARAMETERS:")
 #     for param, value in grid_search.best_params_.items():
 #         logger.info(f"  {param}: {value}")
     
-#     logger.info(f"\n🏆 BEST CV SCORE: {grid_search.best_score_:.4f}")
+#     logger.info(f"\nBEST CV SCORE: {grid_search.best_score_:.4f}")
     
 #     # Get best model
 #     best_model = grid_search.best_estimator_
@@ -228,7 +228,7 @@
 #     results_df = pd.DataFrame(grid_search.cv_results_)
 #     results_df = results_df.sort_values('rank_test_score')
     
-#     logger.info("\n📊 TOP 5 PARAMETER COMBINATIONS:")
+#     logger.info("\nTOP 5 PARAMETER COMBINATIONS:")
 #     logger.info("-" * 60)
     
 #     for idx in range(min(5, len(results_df))):
@@ -252,11 +252,11 @@
 #     logger.info(f"Train-test gap:         {gap:.4f}")
     
 #     if gap < 0.05:
-#         logger.info("✅ Excellent generalization!")
+#         logger.info("Excellent generalization!")
 #     elif gap < 0.10:
-#         logger.info("✅ Good generalization")
+#         logger.info("Good generalization")
 #     else:
-#         logger.warning("⚠️  Some overfitting detected")
+#         logger.warning("Some overfitting detected")
     
 #     # Feature importance
 #     feature_importance = pd.DataFrame({
@@ -341,11 +341,11 @@
 #     logger.info("RANDOMIZED SEARCH RESULTS")
 #     logger.info("="*60)
     
-#     logger.info("\n🏆 BEST PARAMETERS:")
+#     logger.info("\nBEST PARAMETERS:")
 #     for param, value in random_search.best_params_.items():
 #         logger.info(f"  {param}: {value}")
     
-#     logger.info(f"\n🏆 BEST CV SCORE: {random_search.best_score_:.4f}")
+#     logger.info(f"\nBEST CV SCORE: {random_search.best_score_:.4f}")
     
 #     # Get best model
 #     best_model = random_search.best_estimator_
@@ -354,7 +354,7 @@
 #     results_df = pd.DataFrame(random_search.cv_results_)
 #     results_df = results_df.sort_values('rank_test_score')
     
-#     logger.info("\n📊 TOP 5 PARAMETER COMBINATIONS:")
+#     logger.info("\nTOP 5 PARAMETER COMBINATIONS:")
 #     for idx in range(min(5, len(results_df))):
 #         row = results_df.iloc[idx]
 #         logger.info(f"\nRank {idx + 1}:")
@@ -396,7 +396,7 @@
 #     scale_pos_weight = (y_tr == 0).sum() / (y_tr == 1).sum()
     
 #     # STEP 1: Grid search with smaller parameter space (faster)
-#     logger.info("\n📍 STEP 1: Grid search for optimal parameters...")
+#     logger.info("\nSTEP 1: Grid search for optimal parameters...")
     
 #     param_grid = {
 #         'max_depth': [3, 4, 5],
@@ -428,12 +428,12 @@
 #     grid_search.fit(X_tr, y_tr)
     
 #     best_params = grid_search.best_params_
-#     logger.info(f"\n✅ Best parameters found:")
+#     logger.info(f"\nBest parameters found:")
 #     for param, value in best_params.items():
 #         logger.info(f"   {param}: {value}")
     
 #     # STEP 2: Train final model with early stopping using best params
-#     logger.info("\n📍 STEP 2: Training with early stopping using best parameters...")
+#     logger.info("\nSTEP 2: Training with early stopping using best parameters...")
     
 #     final_model = xgb.XGBClassifier(
 #         **best_params,
@@ -450,7 +450,7 @@
 #         verbose=False
 #     )
     
-#     logger.info(f"\n✅ Training complete!")
+#     logger.info(f"\nTraining complete!")
 #     logger.info(f"   Best iteration: {final_model.best_iteration}")
 #     logger.info(f"   Best validation AUC: {final_model.best_score:.4f}")
     
@@ -458,7 +458,7 @@
 #     train_pred_proba = final_model.predict_proba(X_train)[:, 1]
 #     train_auc = roc_auc_score(y_train, train_pred_proba)
     
-#     logger.info(f"\n📊 Full training set AUC: {train_auc:.4f}")
+#     logger.info(f"\nFull training set AUC: {train_auc:.4f}")
     
 #     # Cross-validation
 #     cv_scores = cross_val_score(
@@ -467,7 +467,7 @@
 #         scoring='roc_auc'
 #     )
     
-#     logger.info(f"📊 Cross-validation AUC: {cv_scores.mean():.4f} (+/- {cv_scores.std():.4f})")
+#     logger.info(f"Cross-validation AUC: {cv_scores.mean():.4f} (+/- {cv_scores.std():.4f})")
     
 #     # Feature importance
 #     feature_importance = pd.DataFrame({
@@ -475,11 +475,11 @@
 #         'importance': final_model.feature_importances_
 #     }).sort_values('importance', ascending=False)
     
-#     logger.info("\n🎯 Top 15 Most Important Features:")
+#     logger.info("\nTop 15 Most Important Features:")
 #     logger.info(feature_importance.head(15).to_string())
     
 #     logger.info("\n" + "="*60)
-#     logger.info("✅ OPTIMIZED MODEL COMPLETE!")
+#     logger.info("OPTIMIZED MODEL COMPLETE!")
 #     logger.info("   This model combines grid search + early stopping")
 #     logger.info("   Expected to have best generalization performance")
 #     logger.info("="*60)

@@ -10,47 +10,6 @@ logging.basicConfig(stream=sys.stdout, format=log_fmt, datefmt=log_datefmt, leve
 logger = get_dagster_logger(__name__)
 group_name = "feature_engineering"
 
-
-@asset(group_name=group_name)
-def usage_features_aggregated(usage_info):
-    """
-    Aggregate usage_info from monthly to account level
-    Creates features like avg, sum, min, max of usage metrics
-    """
-    logger.info("Aggregating usage features...")
-    
-    # Group by rating_account_id and aggregate
-    usage_agg = usage_info.groupby('rating_account_id').agg({
-        'used_gb': ['mean', 'sum', 'min', 'max', 'std'],
-        'has_used_roaming': ['sum', 'mean']  # sum gives total months with roaming, mean gives proportion
-    }).reset_index()
-    
-    # Flatten column names
-    usage_agg.columns = ['_'.join(col).strip('_') if col[1] else col[0] 
-                         for col in usage_agg.columns.values]
-    
-    # Rename for clarity
-    usage_agg.columns = [
-        'rating_account_id',
-        'used_gb_avg',      # Average GB used per month
-        'used_gb_total',    # Total GB used across all months
-        'used_gb_min',      # Minimum GB used in any month
-        'used_gb_max',      # Maximum GB used in any month
-        'used_gb_std',      # Standard deviation of GB usage (consistency)
-        'roaming_months_count',  # Number of months with roaming
-        'roaming_rate'      # Proportion of months with roaming
-    ]
-    
-    # Additional derived features
-    usage_agg['usage_variability'] = usage_agg['used_gb_std'] / (usage_agg['used_gb_avg'] + 1)  # Coefficient of variation
-    usage_agg['usage_trend'] = usage_agg['used_gb_max'] - usage_agg['used_gb_min']  # Range of usage
-    
-    logger.info(f"Created {len(usage_agg)} aggregated usage records with {usage_agg.shape[1]} features")
-    logger.info(f"Usage features: {list(usage_agg.columns)}")
-    
-    return usage_agg
-
-
 @asset(group_name=group_name)
 def interaction_features_aggregated(customer_interactions):
     """
@@ -61,8 +20,7 @@ def interaction_features_aggregated(customer_interactions):
     
     # Overall interaction statistics per customer
     overall_agg = customer_interactions.groupby('customer_id').agg({
-        'n': ['sum', 'mean', 'max'],
-        'days_since_last': ['min', 'mean']
+        'n': ['sum', 'mean', 'max']
     }).reset_index()
     
     overall_agg.columns = ['_'.join(col).strip('_') if col[1] else col[0] 
@@ -73,8 +31,7 @@ def interaction_features_aggregated(customer_interactions):
         'total_interactions',        # Total number of interactions across all types
         'avg_interactions_per_type', # Average interactions per type
         'max_interactions_type',     # Max interactions for any single type
-        'days_since_last_contact',   # Most recent contact (min days since last)
-        'avg_days_since_contact'     # Average days since last contact
+        'days_since_last_contact'   # Most recent contact
     ]
     
     # Pivot to get interaction counts by type
@@ -114,7 +71,7 @@ def interaction_features_aggregated(customer_interactions):
         "feature_names": AssetOut(description="List of feature names for modeling")
     }
 )
-def create_model_features(core_data, usage_features_aggregated, interaction_features_aggregated):
+def create_model_features(core_data, interaction_features_aggregated):
     """
     Combine all data sources and create final feature set for modeling
     """
@@ -122,10 +79,6 @@ def create_model_features(core_data, usage_features_aggregated, interaction_feat
     
     # Start with core data
     df = core_data.copy()
-    
-    # Merge usage features
-    df = df.merge(usage_features_aggregated, on='rating_account_id', how='left')
-    logger.info(f"After merging usage features: {df.shape}")
     
     # Merge interaction features
     df = df.merge(interaction_features_aggregated, on='customer_id', how='left')
@@ -163,7 +116,7 @@ def create_model_features(core_data, usage_features_aggregated, interaction_feat
     df['contract_long_term'] = (df['contract_lifetime_days'] >= 1095).astype(int)
     
     # 6. Interaction recency
-    df['has_recent_interaction'] = (df['days_since_last_contact'] < 60).astype(int)
+    df['has_recent_interaction'] = (df['days_since_last_contact'] < 30).astype(int)
     df['has_recent_interaction'] = df['has_recent_interaction'].fillna(0)
     
     # One-hot encode smartphone brand

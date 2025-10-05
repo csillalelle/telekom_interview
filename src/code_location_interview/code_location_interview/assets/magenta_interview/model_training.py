@@ -61,7 +61,7 @@ def split_and_scale_data(df_model_input, feature_names):
     logger.info(f"Train positive rate: {y_train.mean():.2%}")
     logger.info(f"Test positive rate: {y_test.mean():.2%}")
     
-    # Scale features (important for logistic regression)
+    # Scale features (for logistic regression)
     scaler = StandardScaler()
     X_train_scaled = pd.DataFrame(
         scaler.fit_transform(X_train),
@@ -111,7 +111,7 @@ def logistic_regression_model(X_train, y_train):
     # Train the model
     lr_model.fit(X_train, y_train)
     
-    # Cross-validation to assess model stability
+    # Cross-validation
     cv_scores = cross_val_score(
         lr_model, X_train, y_train, 
         cv=StratifiedKFold(n_splits=5, shuffle=True, random_state=42),
@@ -141,7 +141,7 @@ def logistic_regression_model(X_train, y_train):
 @asset(group_name=group_name)
 def xgboost_model(X_train, y_train):
     """
-    Train an XGBoost model
+    Train an XGBoost model optimized for PR-AUC (Precision-Recall AUC)
     
     Why XGBoost?
     - Handles non-linear relationships: Captures complex patterns in data
@@ -149,8 +149,13 @@ def xgboost_model(X_train, y_train):
     - Robust to outliers: Tree-based models are less sensitive to extreme values
     - High performance: Often achieves better predictive accuracy than linear models
     - Built-in feature importance: Provides multiple ways to rank features
+    
+    Why PR-AUC optimization?
+    - More informative for imbalanced datasets (7% upsell rate)
+    - Focuses on precision-recall tradeoff which is more relevant for business
+    - Less sensitive to class imbalance than ROC-AUC
     """
-    logger.info("Training XGBoost model...")
+    logger.info("Training XGBoost model optimized for PR-AUC...")
     
     # Calculate scale_pos_weight for class imbalance
     # This parameter helps XGBoost handle imbalanced datasets
@@ -159,44 +164,52 @@ def xgboost_model(X_train, y_train):
     
     # XGBoost parameters
     xgb_params = {
-        # Tree structure - shallow trees to prevent overfitting
-        'max_depth': 2,                    # Found optimal through hyperparameter tuning
-        'min_child_weight': 7,             # Higher value = more conservative (prevents overfitting)
-        'gamma': 0.05,                     # Minimum loss reduction for split
+        # Parameters changed based on GridSearch results
+        'max_depth': 3,                    # Increased from 2 for better minority class capture
+        'min_child_weight': 5,             # Reduced from 7 to allow more splits on minority class
+        'gamma': 0.1,                      # Increased for more conservative splits
         
         # Learning parameters
         'learning_rate': 0.05,             # Lower learning rate for better generalization
-        'n_estimators': 300,               # Number of boosting rounds (optimized)
+        'n_estimators': 400,               # Increased boosting rounds for better minority class learning
         
-        # Sampling to reduce overfitting
-        'subsample': 0.7,                  # 70% of training instances per tree
-        'colsample_bytree': 0.9,          # 90% of features per tree
+        # Sampling to reduce overfitting while capturing minority class
+        'subsample': 0.75,                 # Slightly increased to see more minority samples
+        'colsample_bytree': 0.85,          # Reduced to add more randomness
         
         # Regularization - prevent overfitting
-        'reg_alpha': 2.0,                  # L1 regularization (lasso)
-        'reg_lambda': 0.5,                 # L2 regularization (ridge)
+        'reg_alpha': 1.5,                  # Reduced L1 for more flexibility
+        'reg_lambda': 1.0,                 # Increased L2 for better generalization
         
         # Other parameters
         'objective': 'binary:logistic',   # Binary classification
         'scale_pos_weight': scale_pos_weight,  # Handle class imbalance
         'random_state': 42,
-        'eval_metric': 'auc',             # Evaluation metric
-        'early_stopping_rounds': 30       # Stop if no improvement for 30 rounds
+        'eval_metric': 'aucpr'            # Optimize for PR-AUC instead of ROC-AUC
     }
 
     # Train the model
     xgb_model = xgb.XGBClassifier(**xgb_params)
     xgb_model.fit(X_train, y_train, verbose=False)
     
-    # Cross-validation
-    cv_scores = cross_val_score(
+    # Cross-validation 
+    cv_scores_roc = cross_val_score(
         xgb_model, X_train, y_train,
         cv=StratifiedKFold(n_splits=5, shuffle=True, random_state=42),
         scoring='roc_auc'
     )
     
-    logger.info(f"Cross-validation ROC-AUC scores: {cv_scores}")
-    logger.info(f"Mean CV ROC-AUC: {cv_scores.mean():.4f} (+/- {cv_scores.std():.4f})")
+    cv_scores_pr = cross_val_score(
+        xgb_model, X_train, y_train,
+        cv=StratifiedKFold(n_splits=5, shuffle=True, random_state=42),
+        scoring='average_precision'  # PR-AUC metric
+    )
+    
+    logger.info(f"Cross-validation ROC-AUC scores: {cv_scores_roc}")
+    logger.info(f"Mean CV ROC-AUC: {cv_scores_roc.mean():.4f} (+/- {cv_scores_roc.std():.4f})")
+    
+    logger.info(f"\nCross-validation PR-AUC scores: {cv_scores_pr}")
+    logger.info(f"Mean CV PR-AUC: {cv_scores_pr.mean():.4f} (+/- {cv_scores_pr.std():.4f})")
     
     # Feature importance
     feature_importance = pd.DataFrame({
@@ -209,7 +222,8 @@ def xgboost_model(X_train, y_train):
     
     return {
         'model': xgb_model,
-        'cv_scores': cv_scores,
+        'cv_scores': cv_scores_roc,
+        'cv_scores_pr': cv_scores_pr, 
         'feature_importance': feature_importance,
         'params': xgb_params
     }
@@ -285,9 +299,9 @@ def evaluate_logistic_regression(logistic_regression_model, X_train, X_test, y_t
     logger.info(f"AUC Gap:       {auc_gap:.4f}")
     
     if auc_gap > 0.05:
-        logger.warning("⚠️  Potential overfitting: Train AUC significantly higher than test AUC")
+        logger.warning("Potential overfitting: Train AUC significantly higher than test AUC")
     else:
-        logger.info("✅ Model generalizes well: Minimal train-test gap")
+        logger.info("Model generalizes well: Minimal train-test gap")
     
     # Business metrics
     precision = test_cm[1,1] / (test_cm[1,1] + test_cm[0,1]) if (test_cm[1,1] + test_cm[0,1]) > 0 else 0
@@ -383,9 +397,9 @@ def evaluate_xgboost(xgboost_model, X_train, X_test, y_train, y_test):
     logger.info(f"AUC Gap:       {auc_gap:.4f}")
     
     if auc_gap > 0.05:
-        logger.warning("⚠️  Potential overfitting: Train AUC significantly higher than test AUC")
+        logger.warning("Potential overfitting: Train AUC significantly higher than test AUC")
     else:
-        logger.info("✅ Model generalizes well: Minimal train-test gap")
+        logger.info("Model generalizes well: Minimal train-test gap")
     
     # Business metrics
     precision = test_cm[1,1] / (test_cm[1,1] + test_cm[0,1]) if (test_cm[1,1] + test_cm[0,1]) > 0 else 0
@@ -463,22 +477,22 @@ def model_comparison(evaluate_logistic_regression, evaluate_xgboost):
     if evaluate_xgboost['roc_auc'] > evaluate_logistic_regression['roc_auc']:
         winner = "XGBoost"
         diff = evaluate_xgboost['roc_auc'] - evaluate_logistic_regression['roc_auc']
-        logger.info(f"🏆 XGBoost achieves higher ROC-AUC score (+{diff:.4f})")
+        logger.info(f"XGBoost achieves higher ROC-AUC score (+{diff:.4f})")
     else:
         winner = "Logistic Regression"
         diff = evaluate_logistic_regression['roc_auc'] - evaluate_xgboost['roc_auc']
-        logger.info(f"🏆 Logistic Regression achieves higher ROC-AUC score (+{diff:.4f})")
+        logger.info(f"Logistic Regression achieves higher ROC-AUC score (+{diff:.4f})")
     
     logger.info("\n" + "="*60)
     logger.info("RECOMMENDATIONS")
     logger.info("="*60)
-    logger.info("✅ For MAXIMUM PREDICTIVE PERFORMANCE:")
+    logger.info("For MAXIMUM PREDICTIVE PERFORMANCE:")
     logger.info(f"   → Use {winner} (higher test set ROC-AUC)")
-    logger.info("\n✅ For INTERPRETABILITY & STAKEHOLDER COMMUNICATION:")
+    logger.info("\nFor INTERPRETABILITY & STAKEHOLDER COMMUNICATION:")
     logger.info("   → Use Logistic Regression (clear feature coefficients)")
-    logger.info("\n✅ For PRODUCTION DEPLOYMENT:")
+    logger.info("\nFor PRODUCTION DEPLOYMENT:")
     logger.info("   → Consider ensemble of both models or stacking")
-    logger.info("\n✅ For OVERFITTING CONCERNS:")
+    logger.info("\nFor OVERFITTING CONCERNS:")
     if evaluate_logistic_regression['auc_gap'] < evaluate_xgboost['auc_gap']:
         logger.info("   → Logistic Regression shows better generalization")
     else:

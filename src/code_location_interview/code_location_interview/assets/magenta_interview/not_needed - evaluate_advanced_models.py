@@ -32,7 +32,7 @@
 #     train_f1 = f1_score(y_train, train_pred)
 #     train_cm = confusion_matrix(y_train, train_pred)
     
-#     logger.info("\n📊 TRAINING SET:")
+#     logger.info("\nTRAINING SET:")
 #     logger.info(f"ROC-AUC:    {train_auc:.4f}")
 #     logger.info(f"Precision:  {train_precision:.4f}")
 #     logger.info(f"Recall:     {train_recall:.4f}")
@@ -49,7 +49,7 @@
 #     test_f1 = f1_score(y_test, test_pred)
 #     test_cm = confusion_matrix(y_test, test_pred)
     
-#     logger.info("\n📊 TEST SET:")
+#     logger.info("\nTEST SET:")
 #     logger.info(f"ROC-AUC:    {test_auc:.4f}")
 #     logger.info(f"Precision:  {test_precision:.4f}")
 #     logger.info(f"Recall:     {test_recall:.4f}")
@@ -61,19 +61,19 @@
     
 #     # Overfitting analysis
 #     auc_gap = train_auc - test_auc
-#     logger.info("\n⚖️  GENERALIZATION:")
+#     logger.info("\nGENERALIZATION:")
 #     logger.info(f"Train AUC: {train_auc:.4f}")
 #     logger.info(f"Test AUC:  {test_auc:.4f}")
 #     logger.info(f"AUC Gap:   {auc_gap:.4f}")
     
 #     if auc_gap < 0.03:
-#         logger.info("✅ Excellent generalization!")
+#         logger.info("Excellent generalization!")
 #     elif auc_gap < 0.06:
-#         logger.info("✅ Good generalization")
+#         logger.info("Good generalization")
 #     elif auc_gap < 0.10:
-#         logger.info("⚠️  Acceptable generalization")
+#         logger.info("Acceptable generalization")
 #     else:
-#         logger.warning("⚠️  Overfitting detected")
+#         logger.warning("Overfitting detected")
     
 #     return {
 #         'train_auc': train_auc,
@@ -155,7 +155,7 @@
     
 #     comparison_df = pd.DataFrame(comparison_data).T
     
-#     logger.info("\n📊 PERFORMANCE COMPARISON:")
+#     logger.info("\nPERFORMANCE COMPARISON:")
 #     logger.info("\n" + comparison_df.to_string())
     
 #     # Find best models
@@ -164,20 +164,20 @@
 #     best_f1 = comparison_df['Test F1'].idxmax()
     
 #     logger.info("\n" + "="*60)
-#     logger.info("🏆 BEST MODELS BY METRIC")
+#     logger.info("BEST MODELS BY METRIC")
 #     logger.info("="*60)
-#     logger.info(f"\n🥇 Best Test AUC: {best_test_auc}")
+#     logger.info(f"\nBest Test AUC: {best_test_auc}")
 #     logger.info(f"   Score: {comparison_df.loc[best_test_auc, 'Test AUC']:.4f}")
     
-#     logger.info(f"\n🥇 Best Generalization (smallest gap): {best_generalization}")
+#     logger.info(f"\nBest Generalization (smallest gap): {best_generalization}")
 #     logger.info(f"   Gap: {comparison_df.loc[best_generalization, 'AUC Gap']:.4f}")
     
-#     logger.info(f"\n🥇 Best F1 Score: {best_f1}")
+#     logger.info(f"\nBest F1 Score: {best_f1}")
 #     logger.info(f"   Score: {comparison_df.loc[best_f1, 'Test F1']:.4f}")
     
 #     # Overall recommendation
 #     logger.info("\n" + "="*60)
-#     logger.info("💡 RECOMMENDATION")
+#     logger.info("RECOMMENDATION")
 #     logger.info("="*60)
     
 #     # Score each model (test AUC weight 50%, generalization 30%, F1 20%)
@@ -189,25 +189,25 @@
     
 #     best_overall = comparison_df['Score'].idxmax()
     
-#     logger.info(f"\n🏆 BEST OVERALL MODEL: {best_overall}")
+#     logger.info(f"\nBEST OVERALL MODEL: {best_overall}")
 #     logger.info(f"   Test AUC: {comparison_df.loc[best_overall, 'Test AUC']:.4f}")
 #     logger.info(f"   AUC Gap:  {comparison_df.loc[best_overall, 'AUC Gap']:.4f}")
 #     logger.info(f"   Test F1:  {comparison_df.loc[best_overall, 'Test F1']:.4f}")
     
-#     logger.info("\n📝 PRODUCTION RECOMMENDATION:")
+#     logger.info("\nPRODUCTION RECOMMENDATION:")
 #     if best_overall == 'Optimized (Grid+ES)':
-#         logger.info("   ✅ Use Optimized model (Grid Search + Early Stopping)")
-#         logger.info("   ✅ This combines hyperparameter tuning with overfitting prevention")
-#         logger.info("   ✅ Best balance of performance and generalization")
+#         logger.info("   Use Optimized model (Grid Search + Early Stopping)")
+#         logger.info("   This combines hyperparameter tuning with overfitting prevention")
+#         logger.info("   Best balance of performance and generalization")
 #     elif best_overall == 'Grid Search':
-#         logger.info("   ✅ Use Grid Search model")
-#         logger.info("   ✅ Systematically optimized hyperparameters")
+#         logger.info("   Use Grid Search model")
+#         logger.info("   Systematically optimized hyperparameters")
 #     elif best_overall == 'Early Stopping':
-#         logger.info("   ✅ Use Early Stopping model")
-#         logger.info("   ✅ Automatically prevents overfitting")
+#         logger.info("   Use Early Stopping model")
+#         logger.info("   Automatically prevents overfitting")
 #     else:
-#         logger.info("   ✅ Use Regularized model")
-#         logger.info("   ✅ Simple and effective regularization")
+#         logger.info("   Use Regularized model")
+#         logger.info("   Simple and effective regularization")
     
 #     # Performance improvements over original
 #     if 'Regularized (Original)' in comparison_data:
@@ -215,7 +215,7 @@
 #         best_test_auc_value = comparison_df.loc[best_overall, 'Test AUC']
 #         improvement = ((best_test_auc_value - original_test_auc) / original_test_auc) * 100
         
-#         logger.info(f"\n📈 IMPROVEMENT OVER BASELINE:")
+#         logger.info(f"\nIMPROVEMENT OVER BASELINE:")
 #         logger.info(f"   Test AUC improvement: {improvement:+.2f}%")
 #         logger.info(f"   From {original_test_auc:.4f} to {best_test_auc_value:.4f}")
     
